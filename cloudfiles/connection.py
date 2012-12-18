@@ -11,9 +11,8 @@ See COPYING for license information.
 import  socket
 import  os
 from    urllib    import urlencode
-from    httplib   import HTTPSConnection, HTTPConnection, HTTPException
 from    container import Container, ContainerResults
-from    utils     import unicode_quote, parse_url, THTTPConnection, THTTPSConnection
+from    utils     import unicode_quote, parse_url, get_conn_class
 from    errors    import ResponseError, NoSuchContainer, ContainerNotEmpty, \
                          InvalidContainerName, CDNNotEnabled, ContainerExists
 from    Queue     import Queue, Empty, Full
@@ -91,12 +90,8 @@ class Connection(object):
         url = self._set_storage_url(url)
         self.connection_args = parse_url(url)
 
-        if version_info[0] <= 2 and version_info[1] < 6:
-            self.conn_class = self.connection_args[3] and THTTPSConnection or \
-                                                              THTTPConnection
-        else:
-            self.conn_class = self.connection_args[3] and HTTPSConnection or \
-                                                              HTTPConnection
+        self.conn_class = get_conn_class(self.connection_args[3])
+
         self.http_connect()
         if self.cdn_url:
             self.cdn_connect()

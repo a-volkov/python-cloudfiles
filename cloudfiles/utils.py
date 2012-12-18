@@ -1,11 +1,12 @@
 """ See COPYING for license information. """
 
 import re
+import os
 from urllib    import quote
 from urlparse  import urlparse
 from errors    import InvalidUrl
 from httplib   import HTTPConnection, HTTPSConnection, HTTP
-
+from sys       import version_info
 
 def parse_url(url):
     """
@@ -97,3 +98,39 @@ class THTTPS(HTTP):
 
     def set_timeout(self, timeout):
         self._conn.timeout = timeout
+
+
+class ProxyConnection(HTTPSConnection):
+    def __init__(self, host, port, timeout):
+        proxy = os.environ.get("https_proxy")
+        (self.proxy_host,self.proxy_port, path, ssl) = parse_url(proxy)
+        self.target_host = host
+        self.target_port = port
+        HTTPSConnection.__init__(self, self.proxy_host, self.proxy_port)
+        self.timeout = timeout
+
+    def connect(self):
+        self.set_tunnel(self.target_host, self.target_port)
+        HTTPSConnection.connect(self)
+        self.sock.settimeout(self.timeout)
+
+
+def get_conn_class(ssl):
+    proxy = os.environ.get("https_proxy", None)
+    if ssl:
+        if proxy is None:
+            if version_info[0] <= 2 and version_info[1] < 6:
+                return THTTPSConnection
+            else:
+                return HTTPSConnection
+        else:
+            if version_info[0] <= 2 and version_info[1] < 7:
+                raise RuntimeError("https_proxy env variable is set, but this python version " \
+                                   "doesn't support set_tunnel")
+            else: 
+                return ProxyConnection
+    else:
+        if version_info[0] <= 2 and version_info[1] < 6:
+            return THTTPConnection
+        else:
+            return HTTPConnection
