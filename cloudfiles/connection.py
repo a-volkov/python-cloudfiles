@@ -11,6 +11,7 @@ See COPYING for license information.
 import  socket
 import  os
 from    urllib    import urlencode
+from    httplib   import HTTPException
 from    container import Container, ContainerResults
 from    utils     import unicode_quote, parse_url, get_conn_class
 from    errors    import ResponseError, NoSuchContainer, ContainerNotEmpty, \
